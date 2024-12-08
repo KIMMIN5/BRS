@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>도서 선택</title>
+    <style>
+        /* 전체 페이지 컨테이너 스타일 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 80px; /* 하단 고정 바를 위한 여백 */
+        }
+
+        /* 도서 그리드 레이아웃 */
+        .book-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* 반응형 그리드 */
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* 개별 도서 카드 스타일 */
+        .book-card {
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            transition: transform 0.2s; /* 호버 애니메이션 */
+        }
+
+        /* 도서 카드 호버 효과 */
+        .book-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* 도서 이미지 스타일 */
+        .book-image {
+            width: 100%;
+            aspect-ratio: 3/4; /* 도서 표지 비율 유지 */
+            object-fit: cover;
+        }
+
+        /* 도서 정보 컨테이너 */
+        .book-info {
+            padding: 15px;
+        }
+
+        /* 도서 제목 스타일 */
+        .book-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        /* 저자 정보 스타일 */
+        .book-author {
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        /* 카테고리 정보 스타일 */
+        .book-category {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 12px;
+        }
+
+        /* 버튼 그룹 컨테이너 */
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        /* 상세보기 버튼 스타일 */
+        .details-button {
+            color: #2563eb;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        /* 선택하기 버튼 스타일 */
+        .select-button {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        /* 선택된 상태의 버튼 스타일 */
+        .select-button.selected {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        /* 하단 고정 바 스타일 */
+        .fixed-bottom {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e5e5e5;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        /* 추천받기 버튼 스타일 */
+        .submit-button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        /* 비활성화된 추천받기 버튼 */
+        .submit-button:disabled {
+            background-color: #93c5fd;
+            cursor: not-allowed;
+        }
+
+        /* 모달 기본 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        /* 모달 컨텐츠 스타일 */
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: 50px auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 8px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        /* 모달 닫기 버튼 */
+        .close-button {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #666;
+        }
+
+        /* 모달 내부 그리드 레이아웃 */
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        /* 진행 상태 바 컨테이너 */
+        .progress-container {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        /* 진행 상태 바 */
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #2563eb;
+            transition: width 0.5s ease;
+        }
+
+        /* 진행 상태 제목 */
+        .progress-title {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* 진행 상태 텍스트 */
+        .progress-status {
+            text-align: center;
+            color: #666;
+        }
+
+        /* 진행 상태 모달 스타일 */
+        #progressModal .modal-content {
+            text-align: center;
+            padding: 30px;
+        }
+
+        /* 반응형 디자인: 모바일 화면 대응 */
+        @media (max-width: 768px) {
+            .modal-grid {
+                grid-template-columns: 1fr; /* 모바일에서는 단일 컬럼으로 변경 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 메인 컨테이너 -->
+    <div class="container">
+        <h1>{{ nickname }}님, 마음에 드는 도서를 선택해주세요</h1>
+        
+        <!-- 도서 그리드 -->
+        <div class="book-grid">
+            {% for book in books %}
+            <div class="book-card">
+                <!-- 도서 이미지 (기본 이미지 폴백 처리) -->
+                <img src="{{ book['IMG_URL'] }}" alt="{{ book['TITLE_NM'] }}" class="book-image" 
+                     onerror="this.src='/static/default_book_cover.jpg'">
+                <div class="book-info">
+                    <div class="book-title">{{ book['TITLE_NM'] }}</div>
+                    <div class="book-author">저자: {{ book['AUTHR_NM'] }}</div>
+                    <div class="book-category">{{ book['CATEGORY_B'] }} > {{ book['CATEGORY_S'] }}</div>
+                    <div class="button-group">
+                        <button class="details-button" data-book='{{ book|tojson|safe }}' 
+                                onclick="showBookDetails(this)">상세보기</button>
+                        <button class="select-button" 
+                                onclick="toggleBookSelection(this, '{{ book['ISBN_THIRTEEN_NO'] }}')">선택하기</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 하단 고정 바 -->
+    <div class="fixed-bottom">
+        <div>선택된 도서: <span id="selected-count">0</span>권</div>
+        <form action="{{ url_for('recommend_books') }}" method="POST" id="recommendation-form">
+            <input type="hidden" name="nickname" value="{{ nickname }}">
+            <button type="submit" class="submit-button" id="submit-button" disabled>추천 받기</button>
+        </form>
+    </div>
+
+<!-- 도서 상세 정보 모달 -->
+<div id="bookModal" class="modal">
+    <div class="modal-content">
+        <button class="close-button" onclick="closeModal()">&times;</button>
+        <div class="modal-grid">
+            <!-- 도서 이미지 영역 -->
+            <div>
+                <img id="modalBookImage" src="" alt="Book cover" style="width: 100%; border-radius: 8px;">
+            </div>
+            <!-- 도서 상세 정보 영역 -->
+            <div>
+                <h2 id="modalTitle"></h2>
+                <p id="modalAuthor"></p>
+                <p id="modalCategory"></p>
+                <p id="modalIsbn"></p>
+                <div style="margin-top: 20px;">
+                    <h3>도서 소개</h3>
+                    <p id="modalStory"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 도서 추천 진행 상태 모달 -->
+<div id="progressModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <h2 class="progress-title">도서 추천 중...</h2>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <p id="progressStatus" class="progress-status">선택한 도서를 분석하고 있습니다...</p>
+    </div>
+</div>
+
+<script>
+    // 선택된 도서들의 ISBN을 저장하는 Set
+    let selectedBooks = new Set();
+
+    /**
+     * 도서 선택/선택 해제를 처리하는 함수
+     * @param {HTMLElement} button - 클릭된 버튼 요소
+     * @param {string} isbn - 도서의 ISBN
+     */
+    function toggleBookSelection(button, isbn) {
+        if (selectedBooks.has(isbn)) {
+            // 이미 선택된 도서인 경우 선택 해제
+            selectedBooks.delete(isbn);
+            button.classList.remove('selected');
+            button.textContent = '선택하기';
+        } else {
+            // 새로 선택하는 도서인 경우 선택 추가
+            selectedBooks.add(isbn);
+            button.classList.add('selected');
+            button.textContent = '선택됨';
+        }
+
+        // UI 업데이트
+        document.getElementById('selected-count').textContent = selectedBooks.size;
+        const submitButton = document.getElementById('submit-button');
+        submitButton.disabled = selectedBooks.size === 0;
+
+        // 폼 데이터 업데이트
+        updateForm();
+    }
+
+    /**
+     * 선택된 도서들의 정보를 폼에 반영하는 함수
+     */
+    function updateForm() {
+        const form = document.getElementById('recommendation-form');
+        // 기존 도서 input 요소들 제거
+        form.querySelectorAll('input[name="books"]').forEach(input => input.remove());
+        
+        // 선택된 도서들에 대한 input 요소 추가
+        selectedBooks.forEach(isbn => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'books';
+            input.value = isbn;
+            form.appendChild(input);
+        });
+    }
+
+    /**
+     * 도서 상세 정보를 모달로 표시하는 함수
+     * @param {HTMLElement} button - 클릭된 상세보기 버튼
+     */
+    function showBookDetails(button) {
+        try {
+            // 도서 데이터 파싱
+            const bookData = button.dataset.book;
+            const book = JSON.parse(bookData);
+            
+            const modal = document.getElementById('bookModal');
+            if (!modal) {
+                console.error('Modal element not found');
+                return;
+            }
+            
+            // 데이터 유효성 검사
+            if (!book || typeof book !== 'object') {
+                console.error('Invalid book data:', book);
+                return;
+            }
+            
+            // 도서 이미지 설정
+            const modalImage = document.getElementById('modalBookImage');
+            if (modalImage) {
+                modalImage.onerror = function() {
+                    this.src = '/static/default_book_cover.jpg';
+                };
+                modalImage.src = book.IMG_URL || '/static/default_book_cover.jpg';
+            }
+            
+            // 도서 정보 텍스트 설정
+            const elements = {
+                'modalTitle': book.TITLE_NM || '제목 없음',
+                'modalAuthor': `저자: ${book.AUTHR_NM || '작자미상'}`,
+                'modalCategory': `카테고리: ${book.CATEGORY_B || '-'} > ${book.CATEGORY_S || '-'}`,
+                'modalIsbn': `ISBN: ${book.ISBN_THIRTEEN_NO || '-'}`,
+                'modalStory': book.STORY || '도서 소개가 없습니다.'
+            };
+            
+            // 각 요소에 텍스트 적용
+            Object.entries(elements).forEach(([id, text]) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = text;
+                }
+            });
+            
+            modal.style.display = 'block';
+            
+        } catch (error) {
+            console.error('Error showing book details:', error);
+            console.log('Received book data:', button.dataset.book);
+        }
+    }
+
+    /**
+     * 모달 창을 닫는 함수
+     */
+    function closeModal() {
+        document.getElementById('bookModal').style.display = 'none';
+        document.getElementById('progressModal').style.display = 'none';
+    }
+
+    /**
+     * Server-Sent Events 연결을 설정하는 함수
+     * @param {Array} selectedBooksArray - 선택된 도서 ISBN 배열
+     * @param {string} nickname - 사용자 닉네임
+     */
+    const connectEventSource = (selectedBooksArray, nickname) => {
+        // SSE 연결 설정
+        const eventSource = new EventSource(`/recommend_books?${new URLSearchParams({
+            books: selectedBooksArray.join(','),
+            nickname: nickname
+        })}`);
+
+        // 메시지 수신 처리
+        eventSource.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                // keep-alive 메시지 처리
+                if (data.progress === -1) {
+                    console.log('Received keep-alive ping');
+                    return;
+                }
+                
+                // UI 업데이트
+                const progressBar = document.getElementById('progressBar');
+                const progressStatus = document.getElementById('progressStatus');
+                progressBar.style.width = data.progress + '%';
+                progressStatus.textContent = data.status;
+                
+                // 에러 처리
+                if (data.error) {
+                    console.error('Server error:', data.error);
+                    console.error('Traceback:', data.traceback);
+                    progressStatus.textContent = `오류 발생: ${data.error}`;
+                    progressBar.style.backgroundColor = '#ff4444';
+                    eventSource.close();
+                    return;
+                }
+                
+                // 추천 완료 처리
+                if (data.progress === 100) {
+                    eventSource.close();
+                    // 추천 결과 페이지로 이동
+                    submitRecommendationForm(nickname, selectedBooksArray);
+                }
+            } catch (error) {
+                handleEventError(error, event.data, eventSource);
+            }
+        };
+
+        // 연결 에러 처리
+        eventSource.onerror = function(event) {
+            handleEventSourceError(event, eventSource);
+        };
+
+        return eventSource;
+    };
+
+    /**
+     * 이벤트 데이터 파싱 에러 처리 함수
+     */
+    function handleEventError(error, rawData, eventSource) {
+        console.error('Error parsing event data:', error);
+        console.error('Raw event data:', rawData);
+        const progressStatus = document.getElementById('progressStatus');
+        const progressBar = document.getElementById('progressBar');
+        progressStatus.textContent = '데이터 처리 중 오류가 발생했습니다. 다시 시도해주세요.';
+        progressBar.style.backgroundColor = '#ff4444';
+        eventSource.close();
+    }
+
+    /**
+     * SSE 연결 에러 처리 함수
+     */
+    function handleEventSourceError(event, eventSource) {
+        console.error('EventSource error:', event);
+        console.error('ReadyState:', eventSource.readyState);
+        const progressStatus = document.getElementById('progressStatus');
+        const progressBar = document.getElementById('progressBar');
+        progressStatus.textContent = '서버 연결이 끊어졌습니다. 페이지를 새로고침해주세요.';
+        progressBar.style.backgroundColor = '#ff4444';
+        eventSource.close();
+    }
+
+    // 폼 제출 이벤트 핸들러
+    document.getElementById('recommendation-form').onsubmit = function(e) {
+        e.preventDefault();
+        
+        // 진행 상태 모달 표시
+        const progressModal = document.getElementById('progressModal');
+        progressModal.style.display = 'block';
+        
+        // 선택된 도서 정보 수집
+        const nickname = document.querySelector('input[name="nickname"]').value;
+        const selectedBooksArray = Array.from(selectedBooks);
+        
+        // SSE 연결 시작
+        const eventSource = connectEventSource(selectedBooksArray, nickname);
+    };
+
+    // 모달 외부 클릭 이벤트 처리
+    window.onclick = function(event) {
+        const modal = document.getElementById('bookModal');
+        const progressModal = document.getElementById('progressModal');
+        if (event.target == modal) {
+            closeModal();
+        }
+        // 주의: progressModal은 외부 클릭으로 닫지 않음
+    }
+</script>
+</body>
+</html>
